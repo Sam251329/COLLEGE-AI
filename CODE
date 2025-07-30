@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JGI Personal AI Bot</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --brand-dark-blue: #002D62;
+            --brand-light-blue: #4A90E2;
+            --brand-gold: #FDB813;
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --bot-bubble-bg: #e2e8f0;
+            --ui-color: var(--brand-dark-blue);
+            --vortex-color: #d1d5db;
+            --chat-font-size: 0.875rem;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .header-content {
+            max-width: 896px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-grow: 1;
+            padding-left: 40px; 
+        }
+        .header-text { text-align: center; }
+        .header-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .animated-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            background-image: linear-gradient(to right, var(--brand-dark-blue), var(--brand-light-blue));
+            animation: gradient-x 5s ease infinite;
+        }
+        .jgi-logo-text {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--brand-dark-blue);
+            line-height: 1;
+            text-shadow: 0px 0px 8px rgba(253, 184, 19, 0.4);
+        }
+        .settings-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+        }
+        .settings-button:hover {
+            color: var(--brand-dark-blue);
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            background-color: var(--bg-color);
+        }
+        
+        #vortex-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            transition: opacity 0.5s;
+        }
+        #vortex-canvas.hidden {
+            opacity: 0;
+        }
+
+        .chat-content { 
+            max-width: 896px; 
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            padding: 1rem;
+        }
+
+        .message-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .message-container.bot { justify-content: flex-start; }
+        .message-container.user { justify-content: flex-end; }
+
+        .avatar {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .avatar.bot-avatar { background-color: var(--bot-bubble-bg); }
+        .avatar.user-avatar { background-color: var(--brand-gold); }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            font-size: var(--chat-font-size);
+        }
+        .message-bubble.bot {
+            background-color: var(--bot-bubble-bg);
+            color: var(--text-primary);
+            border-bottom-left-radius: 0;
+        }
+        .message-bubble.user {
+            background-color: var(--ui-color);
+            color: white;
+            border-bottom-right-radius: 0;
+        }
+
+        .loading-indicator { display: flex; align-items: center; gap: 0.75rem; }
+        .loading-dot {
+            width: 8px; height: 8px; background-color: #00529B; border-radius: 9999px;
+            animation: pulse 1.5s infinite;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .app-footer {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            border-top: 1px solid #e5e7eb;
+            padding: 1rem;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        .footer-content { max-width: 896px; margin: 0 auto; }
+
+        .search-form { width: 100%; }
+        .search-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            padding: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: ring 0.2s;
+        }
+        .search-bar-container:focus-within { outline: 2px solid var(--brand-gold); }
+        .search-input {
+            flex: 1; width: 100%; background: transparent; padding: 0 0.5rem;
+            font-size: 1rem; color: var(--text-primary); border: none; outline: none;
+        }
+        .search-input::placeholder { color: var(--text-secondary); }
+        .search-button {
+            padding: 0.5rem; color: var(--text-secondary); background: none; border: none;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .search-button:hover { color: var(--brand-dark-blue); }
+        .send-button {
+            padding: 0.5rem; background-color: var(--ui-color); border-radius: 9999px;
+            color: white; border: none; cursor: pointer; transition: background-color 0.2s;
+        }
+        .send-button:hover { filter: brightness(1.2); }
+        .send-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        
+        /* Settings Panel */
+        .settings-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .settings-overlay.visible { opacity: 1; pointer-events: auto; }
+        .settings-panel {
+            background-color: white; padding: 2rem; border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); width: 90%; max-width: 400px;
+            position: relative;
+        }
+        .settings-panel h2 { margin-top: 0; color: var(--brand-dark-blue); }
+        .settings-close-button {
+            position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+            cursor: pointer; font-size: 1.5rem; color: var(--text-secondary);
+        }
+        .setting-item { margin-bottom: 1.5rem; }
+        .setting-item label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .setting-item input[type="color"] {
+            width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 0.5rem; padding: 0.25rem; cursor: pointer;
+        }
+        .setting-item input[type="range"] { width: 100%; cursor: pointer; }
+        .toggle-switch {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--brand-dark-blue); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        @keyframes gradient-x {
+            0%, 100% { background-size: 200% 200%; background-position: left center; }
+            50% { background-size: 200% 200%; background-position: right center; }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-center">
+                <div class="jgi-logo-text">JGI</div>
+                <div class="header-text">
+                     <h1 class="animated-title">JGI Personal AI Assistant</h1>
+                     <p class="header-subtitle">Your Smart Campus Companion</p>
+                </div>
+            </div>
+            <button class="settings-button" id="settings-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="chat-area" id="chat-area">
+        <canvas id="vortex-canvas"></canvas>
+        <div class="chat-content" id="chat-content"></div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <form class="search-form" id="search-form">
+                <div class="search-bar-container">
+                     <input type="text" id="user-input" placeholder="Ask about your schedule, exams, notes..." class="search-input">
+                    <button type="button" class="search-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                    </button>
+                    <button type="submit" id="send-button" class="send-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </footer>
+
+    <!-- Settings Panel -->
+    <div class="settings-overlay" id="settings-overlay">
+        <div class="settings-panel">
+            <button class="settings-close-button" id="settings-close-button">&times;</button>
+            <h2>Customize UI</h2>
+            <div class="setting-item">
+                <label for="ui-color-picker">UI Color (Bubbles, Buttons)</label>
+                <input type="color" id="ui-color-picker">
+            </div>
+            <div class="setting-item">
+                <label for="vortex-bg-color-picker">Vortex Background Color</label>
+                <input type="color" id="vortex-bg-color-picker">
+            </div>
+            <div class="setting-item">
+                <label for="vortex-color-picker">Vortex Particle Color</label>
+                <input type="color" id="vortex-color-picker">
+            </div>
+            <div class="setting-item">
+                <label for="font-size-slider">Chat Font Size</label>
+                <input type="range" id="font-size-slider" min="12" max="20" step="1">
+            </div>
+            <div class="setting-item">
+                <div class="toggle-switch">
+                    <label for="animation-toggle">Vortex Animation</label>
+                    <label class="switch">
+                        <input type="checkbox" id="animation-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const chatContent = document.getElementById('chat-content');
+            const chatArea = document.getElementById('chat-area');
+            const searchForm = document.getElementById('search-form');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const vortexCanvas = document.getElementById('vortex-canvas');
+            const settingsButton = document.getElementById('settings-button');
+            const settingsOverlay = document.getElementById('settings-overlay');
+            const settingsCloseButton = document.getElementById('settings-close-button');
+            const uiColorPicker = document.getElementById('ui-color-picker');
+            const vortexBgColorPicker = document.getElementById('vortex-bg-color-picker');
+            const vortexColorPicker = document.getElementById('vortex-color-picker');
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const animationToggle = document.getElementById('animation-toggle');
+            const root = document.documentElement;
+
+            // --- MOCK DATA ---
+            const userName = 'Alex';
+            const timetable = {
+                monday: "10:00 AM: MA-201 (Maths), 11:00 AM: CS-201 (Data Structures), 02:00 PM: CS-201L (Lab)",
+                tuesday: "09:00 AM: PH-201 (Physics), 11:00 AM: EC-201 (Electronics), 01:00 PM: Free Slot",
+                wednesday: "10:00 AM: CS-201 (Data Structures), 12:00 PM: HS-201 (Communication Skills)",
+                thursday: "11:00 AM: MA-201 (Maths), 02:00 PM: PH-201L (Lab)",
+                friday: "09:00 AM: CS-203 (Web Tech), 10:00 AM: Project Mentoring",
+            };
+            const exams = [
+                { subject: "MA-201 (Maths)", date: "2025-08-15", time: "09:30 AM", room: "A-101" },
+                { subject: "CS-201 (Data Structures)", date: "2025-08-18", time: "09:30 AM", room: "C-204" },
+                { subject: "PH-201 (Physics)", date: "2025-08-21", time: "09:30 AM", room: "B-105" },
+            ];
+            const notes = {
+                "maths": "Chapter 3: Differential Equations notes are available on the portal.",
+                "data structures": "Lecture 5 slides on 'Linked Lists' have been uploaded.",
+                "physics": "Lab manual for 'Optics Experiments' is in the shared drive.",
+                "web tech": "Notes on 'HTML & CSS Basics' are available."
+            };
+
+            // --- VORTEX ANIMATION LOGIC ---
+            const ctx = vortexCanvas.getContext('2d');
+            let particles = [];
+            let animationFrameId;
+            let currentSettings;
+
+            const resizeCanvas = () => {
+                vortexCanvas.width = vortexCanvas.offsetWidth;
+                vortexCanvas.height = vortexCanvas.offsetHeight;
+            };
+
+            const createParticles = () => {
+                particles = [];
+                // Random particle frequency
+                const numberOfParticles = Math.floor(Math.random() * 201) + 400; // 400 to 600
+                for (let i = 0; i < numberOfParticles; i++) {
+                    particles.push({
+                        x: Math.random() * vortexCanvas.width,
+                        y: Math.random() * vortexCanvas.height,
+                        baseRadius: Math.random() * 1.5 + 0.5,
+                        angle: Math.random() * 360,
+                        speed: Math.random() * 0.02 + 0.01,
+                        distance: Math.random() * 150 + 50
+                    });
+                }
+            };
+            
+            // Helper to convert hex color to rgba
+            const hexToRgba = (hex, alpha) => {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            };
+
+            const animateVortex = () => {
+                // Use the customizable background color for the trails
+                ctx.fillStyle = hexToRgba(currentSettings.vortexBgColor, 0.1);
+                ctx.fillRect(0, 0, vortexCanvas.width, vortexCanvas.height);
+
+                const centerX = vortexCanvas.width / 2;
+                const centerY = vortexCanvas.height / 2;
+
+                particles.forEach(p => {
+                    p.angle += p.speed;
+                    p.distance -= 0.2; 
+                    if (p.distance < 1) {
+                        p.distance = Math.random() * 150 + (Math.min(vortexCanvas.width, vortexCanvas.height) / 2);
+                        p.angle = Math.random() * 360;
+                    }
+
+                    const x = centerX + p.distance * Math.cos(p.angle);
+                    const y = centerY + p.distance * Math.sin(p.angle);
+                    
+                    const radius = p.baseRadius * (p.distance / 150);
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = currentSettings.vortexColor;
+                    ctx.fill();
+                });
+
+                animationFrameId = requestAnimationFrame(animateVortex);
+            };
+
+            const startAnimation = () => {
+                if (!animationFrameId) {
+                    resizeCanvas();
+                    createParticles();
+                    animateVortex();
+                }
+            };
+
+            const stopAnimation = () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                    ctx.clearRect(0, 0, vortexCanvas.width, vortexCanvas.height);
+                }
+            };
+            
+            window.addEventListener('resize', () => {
+                if (animationFrameId) {
+                    resizeCanvas();
+                    createParticles();
+                }
+            });
+
+            // --- SETTINGS LOGIC ---
+            const defaultSettings = {
+                uiColor: '#002D62',
+                vortexBgColor: '#f8fafc',
+                vortexColor: '#d1d5db',
+                fontSize: '14',
+                animationEnabled: true
+            };
+
+            const applySettings = (settings) => {
+                currentSettings = settings;
+                root.style.setProperty('--ui-color', settings.uiColor);
+                root.style.setProperty('--chat-font-size', `${settings.fontSize}px`);
+                
+                // Set the background color of the chat area itself
+                chatArea.style.backgroundColor = settings.vortexBgColor;
+
+                vortexCanvas.classList.toggle('hidden', !settings.animationEnabled);
+                if (settings.animationEnabled) {
+                    // Re-create particles to apply new density
+                    createParticles(); 
+                    startAnimation();
+                } else {
+                    stopAnimation();
+                }
+                
+                uiColorPicker.value = settings.uiColor;
+                vortexBgColorPicker.value = settings.vortexBgColor;
+                vortexColorPicker.value = settings.vortexColor;
+                fontSizeSlider.value = settings.fontSize;
+                animationToggle.checked = settings.animationEnabled;
+            };
+
+            const loadSettings = () => {
+                const savedSettings = JSON.parse(localStorage.getItem('jgiBotSettings'));
+                applySettings({ ...defaultSettings, ...savedSettings });
+            };
+
+            const saveSettings = () => {
+                const settings = {
+                    uiColor: uiColorPicker.value,
+                    vortexBgColor: vortexBgColorPicker.value,
+                    vortexColor: vortexColorPicker.value,
+                    fontSize: fontSizeSlider.value,
+                    animationEnabled: animationToggle.checked
+                };
+                localStorage.setItem('jgiBotSettings', JSON.stringify(settings));
+                applySettings(settings);
+            };
+            
+            settingsButton.addEventListener('click', () => settingsOverlay.classList.add('visible'));
+            settingsCloseButton.addEventListener('click', () => settingsOverlay.classList.remove('visible'));
+            settingsOverlay.addEventListener('click', (e) => {
+                if (e.target === settingsOverlay) {
+                    settingsOverlay.classList.remove('visible');
+                }
+            });
+            uiColorPicker.addEventListener('input', saveSettings);
+            vortexBgColorPicker.addEventListener('input', saveSettings);
+            vortexColorPicker.addEventListener('input', saveSettings);
+            fontSizeSlider.addEventListener('input', saveSettings);
+            animationToggle.addEventListener('change', saveSettings);
+
+            // --- CHAT FUNCTIONS ---
+            const scrollToBottom = () => chatArea.scrollTop = chatArea.scrollHeight;
+
+            const createMessageBubble = (message) => {
+                const messageContainer = document.createElement('div');
+                messageContainer.className = `message-container ${message.sender}`;
+                const bubble = document.createElement('div');
+                bubble.className = `message-bubble ${message.sender}`;
+                bubble.innerHTML = `<p>${message.text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                const avatar = document.createElement('div');
+                avatar.className = `avatar ${message.sender}-avatar`;
+                if (message.sender === 'bot') {
+                    avatar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#002D62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="16" height="9" rx="2" ry="2"></rect><path d="M8 12V8a4 4 0 1 1 8 0v4"></path><circle cx="9" cy="16" r="1"></circle><circle cx="15" cy="16" r="1"></circle></svg>`;
+                    messageContainer.appendChild(avatar);
+                    messageContainer.appendChild(bubble);
+                } else {
+                    avatar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#002D62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+                    messageContainer.appendChild(bubble);
+                    messageContainer.appendChild(avatar);
+                }
+                chatContent.appendChild(messageContainer);
+                scrollToBottom();
+            };
+
+            const showLoadingIndicator = () => {
+                const loadingHTML = `<div class="message-container bot" id="loading-indicator"><div class="avatar bot-avatar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#002D62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="16" height="9" rx="2" ry="2"></rect><path d="M8 12V8a4 4 0 1 1 8 0v4"></path><circle cx="9" cy="16" r="1"></circle><circle cx="15"cy="16" r="1"></circle></svg></div><div class="message-bubble bot"><div class="loading-indicator"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div></div></div>`;
+                chatContent.insertAdjacentHTML('beforeend', loadingHTML);
+                scrollToBottom();
+            };
+
+            const hideLoadingIndicator = () => {
+                const indicator = document.getElementById('loading-indicator');
+                if (indicator) indicator.remove();
+            };
+
+            const getBotResponse = (input) => {
+                const lowerCaseInput = input.toLowerCase();
+                if (lowerCaseInput.includes('hello') || lowerCaseInput.includes('hi')) return "Hi there! How can I assist you today?";
+                if (lowerCaseInput.includes('timetable') || lowerCaseInput.includes('schedule') || lowerCaseInput.includes('class')) {
+                    const dayMatch = lowerCaseInput.match(/monday|tuesday|wednesday|thursday|friday|tomorrow/);
+                    let day = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                    if (dayMatch) {
+                        day = dayMatch[0] === 'tomorrow' ? new Date(Date.now() + 86400000).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() : dayMatch[0];
+                    }
+                    return `Here is the schedule for ${day.charAt(0).toUpperCase() + day.slice(1)}: ${timetable[day] || "No classes are scheduled."}`;
+                }
+                if (lowerCaseInput.includes('exam') || lowerCaseInput.includes('test')) {
+                    let response = "Here is your upcoming exam schedule:\n";
+                    exams.forEach(exam => {
+                        response += `\n- **${exam.subject}**: ${exam.date} at ${exam.time} in Room ${exam.room}.`;
+                    });
+                    return response;
+                }
+                if (lowerCaseInput.includes('note') || lowerCaseInput.includes('syllabus')) {
+                    const subject = Object.keys(notes).find(s => lowerCaseInput.includes(s));
+                    if (subject) return `For ${subject.charAt(0).toUpperCase() + subject.slice(1)}, ${notes[subject]}`;
+                    return "Which subject's notes are you looking for? (e.g., 'notes for data structures')";
+                }
+                if (lowerCaseInput.includes('thank')) return "You're welcome! Is there anything else I can help with?";
+                return "I'm sorry, I don't have information on that. I can help with timetables, exams, and notes.";
+            };
+
+            const handleSendMessage = (text) => {
+                if (!text.trim()) return;
+                createMessageBubble({ text, sender: 'user' });
+                userInput.value = '';
+                userInput.disabled = true;
+                sendButton.disabled = true;
+                showLoadingIndicator();
+                setTimeout(() => {
+                    const botResponseText = getBotResponse(text);
+                    hideLoadingIndicator();
+                    createMessageBubble({ text: botResponseText, sender: 'bot' });
+                    userInput.disabled = false;
+                    sendButton.disabled = false;
+                    userInput.focus();
+                }, 1500);
+            };
+            
+            // --- INITIALIZATION ---
+            loadSettings();
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                handleSendMessage(userInput.value);
+            });
+            const welcomeText = `Welcome, ${userName}! I am your JGI Personal AI Assistant. How can I help with your schedule, exams, or notes today?`;
+            createMessageBubble({ text: welcomeText, sender: 'bot' });
+            if (!sessionStorage.getItem('welcomeSpoken')) {
+                const utterance = new SpeechSynthesisUtterance(welcomeText);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                speechSynthesis.speak(utterance);
+                sessionStorage.setItem('welcomeSpoken', 'true');
+            }
+        });
+    </script>
+</body>
+</html>
